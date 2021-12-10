@@ -5,45 +5,45 @@ var getPatientResponseObj = {};
 
 const processGetPatientRequestBatch = () => {
     const maxReqId = Date.now();
-    let req = getPatientRequestQueue[0];
     console.log('processGetPatientRequestBatch');
-    console.log(req.id);
-    console.log(req.status);
-    while (req.id <= maxReqId) {
-        console.log('in while loop');
-        getPatientResponseObj[req.id] = {
-            message: 'ho gaya' 
+    if (getPatientRequestQueue.length > 0) {
+        let req = getPatientRequestQueue[0];
+        while (req.id <= maxReqId) {
+            console.log(`Request id: ${req.id} is being processed...`);
+            getPatientResponseObj[req.id] = {
+                message: 'ho gaya' 
+            }
+            req.status = 'processed';
+            [getPatientRequestQueue[0], getPatientRequestQueue[getPatientRequestQueue.length - 1]] = [getPatientRequestQueue[getPatientRequestQueue.length - 1], getPatientRequestQueue[0]];
+            getPatientRequestQueue.pop();
+            if (getPatientRequestQueue.length > 0) {
+                req = getPatientRequestQueue[0];
+            } else break;
         }
-        req.status = 'processed';
-        getPatientRequestQueue.shift();
-        if (getPatientRequestQueue.length > 0) {
-            req = getPatientRequestQueue[0];
-        } else break;
     }
 };
 
 exports.queueGetPatientRequest = (req, res, next) => {
-    console.log('queueGetPatientRequest');
+    // console.log('queueGetPatientRequest');
     // req.id = req.params.id + '_' + Date.now();
     req.id = Date.now();
     req.status = 'waiting';
     getPatientRequestQueue.push(req);
+    console.log(`Request id: ${req.id} is pushed in queue...`);
     next();
 };
 
 exports.batchGetPatientRequest = (req, res, next) => {
-    console.log('batchGetPatientRequest');
-    console.log(req.id);
-    console.log(req.status);
-    setTimeout(processGetPatientRequestBatch, 1000);
+    // console.log('batchGetPatientRequest');
+    // console.log(`Request id: ${req.id} registered processGetPatientRequestBatch...`);
+    setTimeout(processGetPatientRequestBatch, 10);
     next();
 };
 
 exports.getPatientResponse = (req, res) => {
-    console.log('getPatientResponse');
-    console.log(req.id);
-    console.log(req.status);
+    // console.log('getPatientResponse');
     if (req.status == 'processed') {
+        // console.log(`Request id: ${req.id} found in processed state...`);
         const res_data = getPatientResponseObj[req.id];
         getPatientResponseObj[req.id] = null;
         res.status(200).json({
@@ -53,6 +53,7 @@ exports.getPatientResponse = (req, res) => {
             }
         });
     } else {
-        setTimeout(exports.getPatientResponse, 500, req, res);
+        // console.log(`Request id: ${req.id} not found in processed state...`);
+        setTimeout(exports.getPatientResponse, 10, req, res);
     }
 };
